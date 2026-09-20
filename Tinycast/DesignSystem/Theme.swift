@@ -363,7 +363,7 @@ enum Theme {
             guard transparency != 0 else { return panelScrim }
             let amount = Double(max(-100, min(100, transparency))) / 100
             func alpha(_ baseline: Double) -> Double {
-                amount > 0 ? baseline * (1 - amount) : baseline - (1 - baseline) * amount
+                amount > 0 ? max(0.15, baseline * (1 - amount)) : baseline - (1 - baseline) * amount
             }
             return adaptive(
                 dark: .srgbInk(0, alpha: alpha(0.40)), light: .srgbInk(1, alpha: alpha(0.55)))
@@ -451,7 +451,6 @@ enum Theme {
 extension View {
     /// A floating glass control surface, frosted so it reads brighter than clear glass.
     func frosted(in shape: some Shape) -> some View {
-        glassEffect(.regular.interactive().tint(Theme.Colors.glassFrost), in: shape)
-            .tint(.clear)
+        glassEffect(.clear.interactive(), in: shape)
     }
 }
