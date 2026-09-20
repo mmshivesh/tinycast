@@ -13,7 +13,7 @@ struct PaletteBackground: View {
 
     var body: some View {
         Theme.Colors.panelScrim(transparency: settings.paletteTransparency)
-            .background(VisualEffectView())
+            .background(GlassEffectView())
             .overlay {
                 if settings.paletteTransparency != 0 {
                     let edge = RoundedRectangle(cornerRadius: metrics.radius.panel, style: .continuous)
