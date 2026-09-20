@@ -37,6 +37,7 @@ final class PaletteDropGuideController {
         guard self.armed != armed else { return }
         self.armed = armed
         render()
+        if armed { tap() }
     }
 
     func hide() {
@@ -59,6 +60,11 @@ final class PaletteDropGuideController {
 
     private func render() {
         host?.rootView = guides
+    }
+
+    // Triggers a taptic feedback when using a trackpad whenever the alignment is armed
+    private func tap() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
     }
 
     /// AppKit's y grows up from the screen's origin, SwiftUI's grows down from the window's top.

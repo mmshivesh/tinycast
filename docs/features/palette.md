@@ -274,6 +274,8 @@ draws three dotted lines through the default placement — both panel edges full
 width — which turn `Theme.Colors.dropGuideArmed` once the anchor is within `Theme.Size.paletteSnapDistance`
 of home. Releasing while armed snaps the panel there.
 
+Additionally, whenever the snapping is armed, it plays the `.alignment` haptic pattern.
+
 The guides wait for the first `windowDidMove` of a session rather than appearing on mouse-down, so a
 bare click on a handle never flashes them. Crossing to another display re-points them at that display's
 default placement, which is what a snap would then land on.
