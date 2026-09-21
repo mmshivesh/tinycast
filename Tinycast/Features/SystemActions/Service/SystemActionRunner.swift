@@ -104,6 +104,18 @@ enum SystemActionRunner {
             try await runProcess(
                 "/System/Applications/Mission Control.app/Contents/MacOS/Mission Control",
                 arguments: ["1"])
+        case .setLightMode:
+            let result = try await runAppleScript(
+                "tell application \"System Events\" to tell appearance preferences to set dark mode to false"
+            )
+            let failure = result.flag
+            return SystemActionFeedback(failure ? "Failed Setting Light Appearance" : "Light Appearance" )
+        case .setDarkMode:
+            let result = try await runAppleScript(
+                "tell application \"System Events\" to tell appearance preferences to set dark mode to true"
+            )
+            let failure = result.flag
+            return SystemActionFeedback(failure ? "Failed Setting Dark Appearance" : "Dark Appearance" )
         case .toggleAppearance:
             // The script returns the resulting state, so the confirmation can name it.
             let result = try await runAppleScript(
