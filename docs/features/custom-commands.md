@@ -114,12 +114,16 @@ because two arguments may share a name, and keying by name would give them one v
 `CustomCommand.positionalValues(from:)` turns the fields back into `$n` order, or nil while a required
 one is empty.
 
-A **dropdown** argument's field is chosen, not typed: tapping it or pressing ↵ opens the palette's own
-menu, the same machinery a quicklink's `options=` argument uses (see
-[palette.md](palette.md#inline-row-arguments)). The chip shows the option's **title**, and what
-reaches the script is the option's **value**, swapped in when the values are collected, so a script
-written for Raycast receives what Raycast would have sent it. A stored string naming no option passes
-through unchanged, and a required dropdown left unchosen holds ↵ exactly the way a typed field does.
+A **dropdown** argument's field is chosen, not typed: tapping it or pressing ↓ opens the palette's own
+menu, hung under the chip, the same machinery a quicklink's `options=` argument uses (see
+[palette.md](palette.md#inline-row-arguments)). ↵ in the menu picks, then moves on: the next argument
+takes the caret, or the command runs when that was the last one. ↵ on a field that already holds a
+choice acts the same way, and tapping reopens the menu to change it.
+
+The chip shows the option's **title**, and what reaches the script is the option's **value**, swapped
+in when the values are collected, so a script written for Raycast receives what Raycast would have
+sent it. A stored string naming no option passes through unchanged, and a required dropdown left
+unchosen holds ↵ exactly the way a typed field does.
 
 `runCustomCommand(id:values:)` is still the one funnel for every entry point. A launcher row hands it
 the typed values; a **global hotkey or favorite slot** hands it none. Either way, a required value still
@@ -274,8 +278,9 @@ Foundation-only harness. Verify by hand:
 15. An imported command with arguments asks for them and the script receives them — the `"$@"`
     forwarding has no harness coverage of the inline fields that fill it.
 16. Two arguments sharing a name are separate fields; ↵ with a required one empty focuses it.
-17. A dropdown argument opens the palette's menu from its field, marks the current choice, and the
-    script receives the choice's value rather than its title.
+17. A dropdown argument opens the palette's menu from ↓ or a tap, hung under the chip, and marks the
+    current choice. ↵ in the menu picks and moves on: to the next argument, or it runs the command.
+    The script receives the choice's value rather than its title.
 18. Editing an imported dropdown command shows its choices in the editor, and saving keeps them.
 
 ## Importing Raycast scripts

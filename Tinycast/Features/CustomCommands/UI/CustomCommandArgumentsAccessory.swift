@@ -30,6 +30,9 @@ enum CustomCommandArgumentsAccessory {
                 guard let argument = dropdown(command, fieldID: id) else { return nil }
                 return menu(for: argument, value: value(id))
             },
+            optionsAnchor: { id in
+                vm.argumentFrames[PaletteState.argumentKey(command.entryID, id)]
+            },
             // Identity per row, so "which fields were left unanswered" starts clean on the next one.
             view: AnyView(
                 InlineArgumentFields(
@@ -39,6 +42,9 @@ enum CustomCommandArgumentsAccessory {
                     onSubmit: {
                         guard let owed = firstOwed() else { return onSubmit() }
                         focus.wrappedValue = owed
+                    },
+                    onFrame: { id, frame in
+                        vm.argumentFrames[PaletteState.argumentKey(command.entryID, id)] = frame
                     }
                 )
                 .id(command.entryID))

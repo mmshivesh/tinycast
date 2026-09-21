@@ -209,7 +209,12 @@ these invariants:
 - A field declaring `options=` is **chosen, not typed**: it hands back a `PopoverMenuContent` and the
   palette opens it as `OpenMenu.argumentOptions`, the same window every other menu uses. There is no
   second dropdown control to keep in step, which is the whole reason the accessory vends a menu rather
-  than a view of its own.
+  than a view of its own. The menu hangs under the chip that opened it: the accessory answers
+  `optionsAnchor` with the chip's frame, which `InlineArgumentFields` reports into
+  `PaletteState.argumentFrames`, keyed like `commandArguments`. From the keyboard, ↓ on the field
+  opens the menu, ↵ picks, and the form then moves the way ↵ on the field would have: the next
+  argument takes the caret, and the last one activates the row. A mouse click on a menu row stays a
+  pick and nothing more.
 
 The typed values live on `PaletteState.commandArguments`, keyed by
 `PaletteState.argumentKey(entryID, field)` — the argument's name, or a custom command's positional

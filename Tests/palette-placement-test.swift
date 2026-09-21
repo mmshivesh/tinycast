@@ -206,16 +206,38 @@ struct PalettePlacementTests {
         expect(header.maxX, parent.maxX - inset * 2, "a header menu follows its trailing control")
         expect(header.maxY, parent.maxY - headerExtent, "a header menu opens below the field")
 
+        // A pinned menu hangs under the chip that opened it, in window-local x.
+        let pinned = MenuPanelCorner.belowHeader(leading: 200).frame(
+            contentSize: content, parentFrame: parent, inset: inset,
+            headerExtent: headerExtent)
+        expect(pinned.minX, parent.minX + 200, "the pinned menu sits at the chip's own x")
+        expect(pinned.maxY, parent.maxY - headerExtent, "and still opens below the field")
+
+        // A chip near an edge must not drag the menu off the window with it.
+        let clampedLeft = MenuPanelCorner.belowHeader(leading: -50).frame(
+            contentSize: content, parentFrame: parent, inset: inset,
+            headerExtent: headerExtent)
+        expect(clampedLeft.minX, parent.minX + inset, "an off-window chip clamps to the inset")
+        let clampedRight = MenuPanelCorner.belowHeader(leading: 900).frame(
+            contentSize: content, parentFrame: parent, inset: inset,
+            headerExtent: headerExtent)
+        expect(
+            clampedRight.maxX, parent.maxX - inset * 2,
+            "a chip at the trailing edge keeps the menu inside the window")
+
         let scale = Theme.MenuMotion.maximumScale
         let leadingCanvas = MenuPanelCorner.bottomLeading.scaledFrame(leading, by: scale)
         let trailingCanvas = MenuPanelCorner.bottomTrailing.scaledFrame(trailing, by: scale)
         let headerCanvas = MenuPanelCorner.belowHeaderTrailing.scaledFrame(header, by: scale)
+        let pinnedCanvas = MenuPanelCorner.belowHeader(leading: 200).scaledFrame(pinned, by: scale)
         expect(leadingCanvas.minX, leading.minX, "left expansion keeps its leading edge fixed")
         expect(leadingCanvas.minY, leading.minY, "left expansion keeps its bottom edge fixed")
         expect(trailingCanvas.maxX, trailing.maxX, "right expansion keeps its trailing edge fixed")
         expect(trailingCanvas.minY, trailing.minY, "right expansion keeps its bottom edge fixed")
         expect(headerCanvas.maxX, header.maxX, "header expansion keeps its trailing edge fixed")
         expect(headerCanvas.maxY, header.maxY, "header expansion keeps its top edge fixed")
+        expect(pinnedCanvas.minX, pinned.minX, "pinned expansion keeps its leading edge fixed")
+        expect(pinnedCanvas.maxY, pinned.maxY, "and keeps its top edge under the chip")
     }
 
     // MARK: - The tokens these rules depend on
