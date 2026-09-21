@@ -11,19 +11,30 @@ struct SettingsSidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SettingsSearchField(query: $query, focused: $searchFocused)
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.bottom, Theme.Spacing.md)
             if query.isEmpty {
                 browse
             } else {
                 found
             }
         }
-        // The field sits under the toolbar's material, so it needs its own clearance from the top.
-        .padding(.top, Theme.Spacing.md)
+        // Attach a search bar to the top of the sidebar.
+        // Using .safeAreaBar ensures the Liquid Glass effects are preserved
+        .safeAreaBar(edge: .top) {
+            SettingsSearchField(query: $query, focused: $searchFocused)
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.bottom, Theme.Spacing.md)
+        }
         .onExitCommand { query = "" }
         .background(focusShortcut)
+    }
+
+    func activeForegroundColor(for section: SettingsSection, andTab activeTab: SettingsTab) -> Color {
+        return appearsActive ? (navigation.tab == activeTab ? Color.primary : section.accentColor) : Color.secondary
+    }
+    func activeBackgroundColor(for section: SettingsSection, andTab activeTab: SettingsTab) -> Color {
+        return appearsActive
+        ? (navigation.tab == activeTab ? section.accentColor : .accentColor.opacity(0.1))
+        : Color(nsColor: .tertiaryLabelColor)
     }
 
     private var browse: some View {
@@ -35,11 +46,15 @@ struct SettingsSidebarView: View {
                             Text(tab.title)
                         } icon: {
                             Image(systemName: tab.systemImage)
-                                .imageScale(.large)
-                                .foregroundStyle(
-                                    appearsActive
-                                        ? (navigation.tab == tab ? Color.primary : Color.accentColor)
-                                        : Color.secondary)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: Theme.Size.menuBrandIcon, height: Theme.Size.menuBrandIcon)
+                                .foregroundStyle(activeForegroundColor(for: section, andTab: tab))
+                                .padding(4)
+                                .background(
+                                    activeForegroundColor(for: section, andTab: tab).opacity(0.1),
+                                    in: RoundedRectangle(cornerRadius: Theme.Radius.thumbnail, style: .continuous)
+                                )
                         }
                         .tag(tab)
                     }
@@ -96,6 +111,16 @@ struct SettingsSidebarView: View {
 private struct SettingsSearchResultRow: View {
     let entry: SettingsSearchEntry
 
+    private struct ResultRowLabelStyle: LabelStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            HStack(alignment: .center) {
+                configuration.icon
+                configuration.title
+            }
+        }
+    }
+
+
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
@@ -108,6 +133,16 @@ private struct SettingsSearchResultRow: View {
             }
         } icon: {
             Image(systemName: entry.tab.systemImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: Theme.Size.menuBrandIcon, height: Theme.Size.menuBrandIcon)
+                .foregroundStyle(Color.accentColor)
+                .padding(4)
+                .background(
+                    Color.accentColor.opacity(0.1),
+                    in: RoundedRectangle(cornerRadius: Theme.Radius.thumbnail, style: .continuous)
+                )
         }
+        .labelStyle(ResultRowLabelStyle())
     }
 }
