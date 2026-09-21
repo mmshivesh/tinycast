@@ -59,7 +59,7 @@ struct InlineArgumentFields: View {
         }
     }
 
-    static func height(_ metrics: InterfaceMetrics) -> CGFloat { metrics.scaled(26) }
+    static func height(_ metrics: InterfaceMetrics) -> CGFloat { metrics.scaled(32) }
 
     /// The header shrinks the search field to exactly the room left over.
     static func totalWidth(
@@ -139,7 +139,7 @@ private struct ArgumentField: View {
         .font(metrics.typography.rowTrailing)
         .tint(Theme.Colors.textPrimary)
         .onSubmit(onSubmit)
-        .multilineTextAlignment(.center)
+        .multilineTextAlignment(.leading)
         .modifier(
             ArgumentFieldChrome(
                 argument: argument, isFocused: isFocused, isOwed: isOwed && text.isEmpty,

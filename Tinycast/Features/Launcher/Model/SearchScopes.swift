@@ -47,7 +47,7 @@ enum SearchScopes {
                 if fm.fileExists(atPath: url.path) { result.append(contentsOf: withEmbedded(url)) }
                 continue
             }
-            result.append(contentsOf: appBundles(under: url, subfolderDepth: 1))
+            result.append(contentsOf: appBundles(under: url, subfolderDepth: 4))
         }
         var seen = Set<String>()
         return result.filter { seen.insert($0.standardizedFileURL.path).inserted }

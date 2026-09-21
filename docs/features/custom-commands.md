@@ -97,10 +97,11 @@ is dropped while the actual error survives.
 
 ### Arguments
 
-A command may declare **up to three** arguments, each a name and an optional/required flag — Raycast's
-own cap, and what keeps the fields on screen. `CustomCommandArgument.sanitized` enforces it on every
-path in, so a stored or imported command carrying more keeps its first three and drops the rest, the
-way Raycast ignores an `argument4`. The editor's **Add** stops at three.
+A command may declare **up to three** arguments — Raycast's own cap, and what keeps the fields on
+screen. Each is a name and an optional/required flag, and a **dropdown** argument is also a list of
+choices. `CustomCommandArgument.sanitized` enforces the cap on every path in, so a stored or imported
+command carrying more keeps its first three and drops the rest, the way Raycast ignores an
+`argument4`. The editor's **Add** stops at three.
 
 They are filled **inline beside the search field** when the command's row is selected in root search,
 as a quicklink's are (see [palette.md](palette.md#inline-row-arguments)).
@@ -112,6 +113,13 @@ never marked as owed.
 because two arguments may share a name, and keying by name would give them one value and one focus.
 `CustomCommand.positionalValues(from:)` turns the fields back into `$n` order, or nil while a required
 one is empty.
+
+A **dropdown** argument's field is chosen, not typed: tapping it or pressing ↵ opens the palette's own
+menu, the same machinery a quicklink's `options=` argument uses (see
+[palette.md](palette.md#inline-row-arguments)). The chip shows the option's **title**, and what
+reaches the script is the option's **value**, swapped in when the values are collected, so a script
+written for Raycast receives what Raycast would have sent it. A stored string naming no option passes
+through unchanged, and a required dropdown left unchosen holds ↵ exactly the way a typed field does.
 
 `runCustomCommand(id:values:)` is still the one funnel for every entry point. A launcher row hands it
 the typed values; a **global hotkey or favorite slot** hands it none. Either way, a required value still
@@ -266,6 +274,9 @@ Foundation-only harness. Verify by hand:
 15. An imported command with arguments asks for them and the script receives them — the `"$@"`
     forwarding has no harness coverage of the inline fields that fill it.
 16. Two arguments sharing a name are separate fields; ↵ with a required one empty focuses it.
+17. A dropdown argument opens the palette's menu from its field, marks the current choice, and the
+    script receives the choice's value rather than its title.
+18. Editing an imported dropdown command shows its choices in the editor, and saving keeps them.
 
 ## Importing Raycast scripts
 
@@ -289,7 +300,7 @@ script's body can run to megabytes.
 | `@raycast.title` | the command name, and the only thing fuzzy search matches |
 | `@raycast.mode` | `compact` / `fullOutput` turn **Show output** on; `silent` and `inline` leave it off |
 | `@raycast.needsConfirmation` | **Needs confirmation** |
-| `@raycast.argument1…3` | the [arguments](#arguments), named by each one's `placeholder` |
+| `@raycast.argument1…3` | the [arguments](#arguments), named by each one's `placeholder`, with a `dropdown`'s `data` choices too |
 | `@raycast.currentDirectoryPath` | **Run In**, otherwise the script's own folder |
 
 `@raycast.icon` is deliberately **not** imported. Raycast's icon is an emoji or an `.icns` path, and
@@ -298,6 +309,11 @@ either would mean a second icon field on every surface that draws a command. Imp
 the shared terminal glyph, and the editor's picker is there to change it.
 `@raycast.description`, `@raycast.packageName` and the authorship keys have nowhere to go and are
 dropped.
+
+A `dropdown` argument imports its `data` as choices, each `title` with its `value` (the title stands
+in when the script omits the value). `data` that reads as nothing leaves a plain text argument in
+that slot, so the script still receives its `$n`. The import stays silent about it, the way it does
+about any argument JSON that fails to parse.
 
 The generated command text is the shebang's interpreter, the script's path single-quoted, and
 `"$@"`:

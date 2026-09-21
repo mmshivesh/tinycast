@@ -1,14 +1,25 @@
 import Foundation
 
+/// One dropdown choice: the menu shows `title`, the script receives `value`.
+struct CustomCommandDropdownOption: Codable, Hashable, Sendable {
+    var title: String
+    var value: String
+}
+
 /// Values are passed positionally, so what the user types is never re-parsed by zsh.
 struct CustomCommandArgument: Codable, Hashable, Sendable {
     var name: String
     /// An optional argument may be submitted empty; a required one holds ↵ until it has a value.
     var isOptional: Bool
+    /// Choices make the field a dropdown the user picks from; empty leaves it a typed field.
+    var options: [CustomCommandDropdownOption]
 
-    init(name: String, isOptional: Bool = false) {
+    init(
+        name: String, isOptional: Bool = false, options: [CustomCommandDropdownOption] = []
+    ) {
         self.name = name
         self.isOptional = isOptional
+        self.options = options
     }
 
     /// Raycast's own cap, and what keeps the inline fields beside the search field on screen.
@@ -17,15 +28,47 @@ struct CustomCommandArgument: Codable, Hashable, Sendable {
     /// The inline field holding `$n`, keyed by position since two arguments may share a name.
     static func fieldID(at index: Int) -> String { "$\(index + 1)" }
 
+    var isDropdown: Bool { !options.isEmpty }
+
+    /// The value the script sees for a stored choice; a string naming no option passes through.
+    func scriptValue(forTitle title: String) -> String {
+        options.first { $0.title == title }?.value ?? title
+    }
+
     /// A blank name is dropped rather than rejected, so an import can't lose the whole command.
     static func sanitized(_ arguments: [CustomCommandArgument]) -> [CustomCommandArgument] {
         let cleaned = arguments.compactMap { argument -> CustomCommandArgument? in
             var cleaned = argument
             cleaned.name = argument.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            cleaned.options = sanitized(argument.options)
             guard !cleaned.name.isEmpty, !cleaned.name.contains("\0") else { return nil }
             return cleaned
         }
         return Array(cleaned.prefix(limit))
+    }
+
+    /// A choice with no title has nothing to show, and an empty value means the title is the value.
+    private static func sanitized(
+        _ options: [CustomCommandDropdownOption]
+    ) -> [CustomCommandDropdownOption] {
+        options.compactMap { option in
+            let title = option.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, !title.contains("\0") else { return nil }
+            let value = option.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.contains("\0") else { return nil }
+            return CustomCommandDropdownOption(title: title, value: value.isEmpty ? title : value)
+        }
+    }
+
+    // Hand-written, so records and backups written before choices existed still decode.
+    private enum CodingKeys: String, CodingKey { case name, isOptional, options }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        isOptional = try container.decodeIfPresent(Bool.self, forKey: .isOptional) ?? false
+        options =
+            try container.decodeIfPresent([CustomCommandDropdownOption].self, forKey: .options) ?? []
     }
 }
 
