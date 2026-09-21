@@ -1,3 +1,5 @@
+import SwiftUI
+
 enum SettingsTab: CaseIterable, Identifiable {
     case general, applications, systemSettings, systemActions, commands, quicklinks, appleShortcuts,
         fallbacks, clipboard, snippets, fileSearch, windowManagement, navigation, notes, calendar, emoji,
@@ -92,4 +94,14 @@ enum SettingsSection: CaseIterable, Identifiable {
         case .advanced: return [.backup, .about]
         }
     }
+
+    var accentColor: Color {
+        switch self {
+            case .general: return Color.accentColor
+            case .launcher: return Color.accentColor
+            case .features: return Color.accentColor
+            case .advanced: return Color.accentColor
+        }
+    }
+
 }
