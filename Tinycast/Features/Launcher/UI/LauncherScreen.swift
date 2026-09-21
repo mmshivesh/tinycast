@@ -154,6 +154,7 @@ struct LauncherScreen: PaletteScreen {
             return CustomCommandArgumentsAccessory.make(
                 command: core.customCommands.command(entryID: entry.id), vm: vm,
                 metrics: core.settings.interfaceSize.metrics, focus: focus,
+                onOpenOptions: openArgumentOptions,
                 onSubmit: { activate(at: selection) })
         }
         return ExtensionArgumentsAccessory.make(

@@ -96,7 +96,7 @@ private extension MenuPanelCorner {
         switch self {
         case .bottomLeading: .bottomLeading
         case .bottomTrailing: .bottomTrailing
-        case .belowHeaderTrailing: .none
+        case .belowHeaderTrailing, .belowHeader: .none
         }
     }
 }
@@ -227,12 +227,15 @@ struct PaletteHeaderAccessory {
     let firstIncompleteField: String?
     /// A field whose value is chosen rather than typed hands back its menu; nil means free text.
     let optionsMenu: (String) -> PopoverMenuContent?
+    /// The same field's chip frame, in content-view space, so its menu can hang under the chip.
+    let optionsAnchor: (String) -> CGRect?
     let placement: Placement
     let view: AnyView
 
     init(
         width: CGFloat, fieldNames: [String], firstIncompleteField: String?,
         optionsMenu: @escaping (String) -> PopoverMenuContent? = { _ in nil },
+        optionsAnchor: @escaping (String) -> CGRect? = { _ in nil },
         placement: Placement = .afterQuery,
         view: AnyView
     ) {
@@ -240,6 +243,7 @@ struct PaletteHeaderAccessory {
         self.fieldNames = fieldNames
         self.firstIncompleteField = firstIncompleteField
         self.optionsMenu = optionsMenu
+        self.optionsAnchor = optionsAnchor
         self.placement = placement
         self.view = view
     }

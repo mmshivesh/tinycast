@@ -40,17 +40,20 @@ enum PalettePlacement {
     }
 }
 
-/// The three screen-space anchors a menu window can follow.
-enum MenuPanelCorner {
+/// The screen-space anchors a menu window can follow.
+enum MenuPanelCorner: Equatable {
     case bottomLeading
     case bottomTrailing
     case belowHeaderTrailing
+    /// Hung under the header at an explicit window-local x, so it sits over what opened it.
+    case belowHeader(leading: CGFloat)
 
     var layerAnchor: CGPoint {
         switch self {
         case .bottomLeading: CGPoint(x: 0, y: 0)
         case .bottomTrailing: CGPoint(x: 1, y: 0)
         case .belowHeaderTrailing: CGPoint(x: 1, y: 1)
+        case .belowHeader: CGPoint(x: 0, y: 1)
         }
     }
 
@@ -73,8 +76,22 @@ enum MenuPanelCorner {
                 CGPoint(
                     x: parentFrame.maxX - inset * 2 - contentSize.width,
                     y: parentFrame.maxY - headerExtent - contentSize.height)
+            case .belowHeader(let leading):
+                CGPoint(
+                    x: Self.pinned(
+                        leading, parentFrame: parentFrame, inset: inset, width: contentSize.width),
+                    y: parentFrame.maxY - headerExtent - contentSize.height)
             }
         return CGRect(origin: origin, size: contentSize)
+    }
+
+    /// The chip's x kept inside the window: a chip near an edge must not drag the menu off with it.
+    private static func pinned(
+        _ leading: CGFloat, parentFrame: CGRect, inset: CGFloat, width: CGFloat
+    ) -> CGFloat {
+        min(
+            max(parentFrame.minX + leading, parentFrame.minX + inset),
+            parentFrame.maxX - inset * 2 - width)
     }
 
     func scaledFrame(_ frame: CGRect, by scale: CGFloat) -> CGRect {

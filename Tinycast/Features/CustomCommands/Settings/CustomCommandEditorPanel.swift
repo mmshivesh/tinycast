@@ -24,6 +24,15 @@ struct CustomCommandEditorPanel: View {
         let id = UUID()
         var name: String
         var isOptional: Bool
+        var isDropdown: Bool
+        var choices: [ChoiceDraft]
+    }
+
+    /// Identity the persisted choice lacks, for the same reason.
+    private struct ChoiceDraft: Identifiable {
+        let id = UUID()
+        var title: String
+        var value: String
     }
 
     init(command: CustomCommand?) {
@@ -35,8 +44,13 @@ struct CustomCommandEditorPanel: View {
         _showsConfirmation = State(initialValue: command?.showsConfirmation ?? false)
         _showsOutput = State(initialValue: command?.showsOutput ?? false)
         _arguments = State(
-            initialValue: (command?.arguments ?? []).map {
-                ArgumentDraft(name: $0.name, isOptional: $0.isOptional)
+            initialValue: (command?.arguments ?? []).map { argument in
+                ArgumentDraft(
+                    name: argument.name, isOptional: argument.isOptional,
+                    isDropdown: argument.isDropdown,
+                    choices: argument.options.map {
+                        ChoiceDraft(title: $0.title, value: $0.value)
+                    })
             })
         _workingDirectory = State(initialValue: command?.workingDirectory ?? "")
         _iconSymbol = State(initialValue: command?.iconSymbol)
@@ -186,12 +200,22 @@ struct CustomCommandEditorPanel: View {
                 Text("Arguments")
                     .font(.callout.weight(.medium))
                 Spacer()
-                Button("Add") { arguments.append(ArgumentDraft(name: "", isOptional: false)) }
+                Button("Add") {
+                    arguments.append(
+                        ArgumentDraft(name: "", isOptional: false, isDropdown: false, choices: []))
+                }
                     .controlSize(.small)
                     .disabled(arguments.count >= CustomCommandArgument.limit)
             }
             VStack(spacing: Theme.Spacing.sm) {
-                ForEach($arguments) { $argument in argumentRow($argument) }
+                ForEach($arguments) { $argument in
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        argumentRow($argument)
+                        if $argument.wrappedValue.isDropdown {
+                            choicesEditor($argument.choices)
+                        }
+                    }
+                }
             }
             Text(
                 arguments.isEmpty
@@ -212,6 +236,23 @@ struct CustomCommandEditorPanel: View {
                 .frame(width: Self.positionWidth, alignment: .leading)
             TextField("Argument name", text: argument.name)
                 .settingsEditorTextField()
+            Picker("Kind", selection: argument.isDropdown) {
+                Text("Text").tag(false)
+                Text("Dropdown").tag(true)
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .fixedSize()
+            .onChange(of: argument.wrappedValue.isDropdown) { _, isDropdown in
+                if isDropdown {
+                    // No choices would read as a text field again, so seed one to fill in.
+                    if argument.choices.wrappedValue.isEmpty {
+                        argument.choices.wrappedValue = [ChoiceDraft(title: "", value: "")]
+                    }
+                } else {
+                    argument.choices.wrappedValue = []
+                }
+            }
             Toggle("Optional", isOn: argument.isOptional)
                 .toggleStyle(.checkbox)
             Button {
@@ -222,6 +263,40 @@ struct CustomCommandEditorPanel: View {
             .buttonStyle(.borderless)
             .help("Remove this argument")
         }
+    }
+
+    private func choicesEditor(_ choices: Binding<[ChoiceDraft]>) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            HStack {
+                Text("Choices")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Add Choice") {
+                    choices.wrappedValue.append(ChoiceDraft(title: "", value: ""))
+                }
+                .controlSize(.small)
+            }
+            ForEach(choices) { $choice in
+                HStack(spacing: Theme.Spacing.sm) {
+                    TextField("Title", text: $choice.title)
+                        .settingsEditorTextField()
+                    TextField("Value", text: $choice.value)
+                        .settingsEditorTextField()
+                    Button {
+                        choices.wrappedValue.removeAll { $0.id == choice.id }
+                    } label: {
+                        Image(systemName: "minus.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Remove this choice")
+                }
+            }
+            Text("The menu shows the title. The command receives the value, or the title when empty.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.leading, Self.positionWidth)
     }
 
     private static let positionWidth: CGFloat = 22
@@ -256,7 +331,8 @@ struct CustomCommandEditorPanel: View {
             requiresConfirmation: requiresConfirmation,
             showsConfirmation: showsConfirmation,
             arguments: arguments.map {
-                CustomCommandArgument(name: $0.name, isOptional: $0.isOptional)
+                CustomCommandArgument(
+                    name: $0.name, isOptional: $0.isOptional, options: choices(of: $0))
             },
             showsOutput: showsOutput, workingDirectory: workingDirectory, iconSymbol: iconSymbol)
         do {
@@ -268,6 +344,14 @@ struct CustomCommandEditorPanel: View {
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Choices exist only on a dropdown argument; trimming and blanks are the store's sanitizing.
+    private func choices(of argument: ArgumentDraft) -> [CustomCommandDropdownOption] {
+        guard argument.isDropdown else { return [] }
+        return argument.choices.map {
+            CustomCommandDropdownOption(title: $0.title, value: $0.value)
         }
     }
 }

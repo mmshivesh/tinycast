@@ -194,6 +194,48 @@ struct CustomCommandTests {
                 CustomCommandArgument(name: "Tab", isOptional: true)
             ])
 
+        let dropdownData = #"{"title":"Work","value":"Work"},{"title":"Personal","value":"Personal"}"#
+            + #", {"title":"AI Work","value":"AgenticWork"}"#
+        let dropdownSource = """
+            #!/usr/bin/env bash
+
+            # Required parameters:
+            # @raycast.schemaVersion 1
+            # @raycast.title Things Profiles
+            # @raycast.mode silent
+
+            # Optional parameters:
+            # @raycast.argument1 { "type": "dropdown", "placeholder": "Select Option", "data": [\(dropdownData)] }
+
+            echo "Hello World! Argument1 value: $1"
+            """
+        let dropdownScript = RaycastScriptImport.command(
+            at: URL(fileURLWithPath: "/tmp/things profiles.sh"), source: dropdownSource)
+        check(
+            "a dropdown argument imports its choices, titles and values, in order",
+            dropdownScript?.arguments == [
+                CustomCommandArgument(
+                    name: "Select Option",
+                    options: [
+                        CustomCommandDropdownOption(title: "Work", value: "Work"),
+                        CustomCommandDropdownOption(title: "Personal", value: "Personal"),
+                        CustomCommandDropdownOption(title: "AI Work", value: "AgenticWork")
+                    ])
+            ])
+
+        let brokenDropdownSource = """
+            #!/bin/bash
+            # @raycast.title Broken
+            # @raycast.argument1 { "type": "dropdown", "placeholder": "Pick", "data": "nope" }
+
+            echo "$1"
+            """
+        let brokenScript = RaycastScriptImport.command(
+            at: URL(fileURLWithPath: "/tmp/broken.sh"), source: brokenDropdownSource)
+        check(
+            "dropdown data that reads as nothing imports as a text field",
+            brokenScript?.arguments == [CustomCommandArgument(name: "Pick")])
+
         check(
             "a file naming no interpreter is not a script command",
             RaycastScriptImport.command(
@@ -439,6 +481,60 @@ struct CustomCommandTests {
         check(
             "arguments are capped at three, counted after blanks drop",
             capped.map(\.name) == ["a", "b", "c"])
+
+        // MARK: Dropdown arguments
+
+        let dropdown = CustomCommandArgument(
+            name: "Select Option",
+            options: [
+                CustomCommandDropdownOption(title: "Work", value: "Work"),
+                CustomCommandDropdownOption(title: "AI Work", value: "AgenticWork")
+            ])
+        check("an argument with choices is a dropdown", dropdown.isDropdown)
+        check(
+            "the script receives the choice's value, not its title",
+            dropdown.scriptValue(forTitle: "AI Work") == "AgenticWork")
+        check(
+            "a stored string naming no choice passes through unchanged",
+            dropdown.scriptValue(forTitle: "Lost") == "Lost")
+        check(
+            "a text argument passes its value through",
+            CustomCommandArgument(name: "Query").scriptValue(forTitle: "google") == "google")
+
+        let cleanedChoices = CustomCommandArgument.sanitized([
+            CustomCommandArgument(
+                name: "Pick",
+                options: [
+                    CustomCommandDropdownOption(title: "  Kept  ", value: "   "),
+                    CustomCommandDropdownOption(title: "   ", value: "Lost"),
+                    CustomCommandDropdownOption(title: "Bad\0", value: "x")
+                ])
+        ])
+        check(
+            "a choice is trimmed, an empty value becomes its title, and a titleless one drops",
+            cleanedChoices.first?.options == [CustomCommandDropdownOption(title: "Kept", value: "Kept")]
+        )
+
+        // An argument stored before choices existed must still decode.
+        let legacyArguments = Data(
+            """
+            [{"id":"\(UUID().uuidString)","name":"Legacy","command":"/usr/bin/true",
+            "arguments":[{"name":"Pick","isOptional":false}]}]
+            """.utf8)
+        defaults.set(legacyArguments, forKey: "customCommands")
+        check(
+            "an argument written before choices existed still loads",
+            CustomCommandStore(defaults: defaults).commands.first?.arguments == [
+                CustomCommandArgument(name: "Pick")
+            ])
+
+        let roundTrip = CustomCommand(
+            name: "Profiles", command: "/usr/bin/true", arguments: [dropdown])
+        let encoded = try? JSONEncoder().encode([roundTrip])
+        let decoded = encoded.flatMap { try? JSONDecoder().decode([CustomCommand].self, from: $0) }
+        check(
+            "a dropdown argument round-trips through JSON",
+            decoded?.first?.arguments == roundTrip.arguments)
 
         // MARK: Shell environment
 

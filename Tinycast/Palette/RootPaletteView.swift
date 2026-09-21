@@ -218,14 +218,14 @@ struct RootPaletteView: View {
             return screen.menuContent(
                 at: selection(in: screen), searchQuery: ActionMenuSearchQuery(vm.menuQuery),
                 menuSelection: $menuSelection,
-                onActivate: activateMenuItem)
+                onActivate: { activateMenuItem($0) })
         case .app:
             let filtered = appMenuContent.matching(ActionMenuSearchQuery(vm.menuQuery))
             return PaletteMenuContent(
                 popover: filtered.content, selection: $menuSelection,
                 search: PopoverMenu.Search(
                     placeholder: "Search for actions…", placement: .bottom),
-                onActivate: activateMenuItem, preferredSelection: filtered.bestMatch)
+                onActivate: { activateMenuItem($0) }, preferredSelection: filtered.bestMatch)
         case .clipboardFilter:
             return headerMenu(
                 clipboardFilterContent, width: metrics.size.clipboardFilterMenuWidth)
@@ -250,7 +250,7 @@ struct RootPaletteView: View {
         case .extensionAccessory:
             return extensionCommandScreen?.searchAccessoryMenu(
                 searchQuery: ActionMenuSearchQuery(vm.menuQuery),
-                menuSelection: $menuSelection, onActivate: activateMenuItem)
+                menuSelection: $menuSelection, onActivate: { activateMenuItem($0) })
         case nil: return nil
         }
     }
@@ -498,7 +498,7 @@ struct RootPaletteView: View {
                 let command = press.modifiers.contains(.command)
                 let option = press.modifiers.contains(.option)
                 if menuOpen, !command, !option {
-                    activateMenuItem(menuSelection)
+                    activateMenuItem(menuSelection, continues: true)
                     return .handled
                 }
                 if isExtensionForm { return handleFormReturn(press) }
@@ -1015,7 +1015,7 @@ struct RootPaletteView: View {
         return PaletteMenuContent(
             popover: filtered.content, selection: $menuSelection, width: width,
             search: PopoverMenu.Search(placeholder: "Search…", placement: .top),
-            onActivate: activateMenuItem, preferredSelection: filtered.bestMatch)
+            onActivate: { activateMenuItem($0) }, preferredSelection: filtered.bestMatch)
     }
 
     /// Every open path lands here, so the highlight is always stated rather than left behind.
@@ -1088,7 +1088,7 @@ struct RootPaletteView: View {
             if modifiers.contains(.option) {
                 return screen.pasteKeepingWindowOpen(at: selection)
             }
-            activateMenuItem(menuSelection)
+            activateMenuItem(menuSelection, continues: true)
             return true
         case .some(.tab), .some(.backTab):
             return true
@@ -1155,7 +1155,8 @@ struct RootPaletteView: View {
         switch openMenu {
         case .app: .bottomLeading
         case .actions: .bottomTrailing
-        case .argumentOptions: .belowHeaderTrailing
+        case .argumentOptions(let leading):
+            leading.map(MenuPanelCorner.belowHeader) ?? .belowHeaderTrailing
         case .clipboardFilter, .fileSearchFilter, .emojiCategory, .aiModel, .aiReasoning,
             .extensionAccessory:
             .belowHeaderTrailing
@@ -1177,6 +1178,13 @@ struct RootPaletteView: View {
         let screen = screen
         // A control editing with ↑/↓ keeps them; only ⇥ leaves it.
         guard !screen.ownsVerticalKeys(at: selection(in: screen)) else { return .ignored }
+        // Down on a chosen-from field opens its menu, the way ↓ opens a native popup.
+        if delta > 0, let field = argumentFocused,
+            headerAccessory?.optionsMenu(field) != nil
+        {
+            openArgumentOptions(field)
+            return .handled
+        }
         // Moving off a command takes its argument fields with it, so hand focus back first.
         if argumentFocused != nil { returnFocusToSearchField() }
         guard let next = screen.move(delta, axis: .vertical, from: selection(in: screen)) else {
@@ -1228,15 +1236,32 @@ struct RootPaletteView: View {
         }
     }
 
-    /// The one activation path for a menu row: run its action, then close.
-    private func activateMenuItem(_ index: Int) {
+    /// The one activation path for a menu row: run its action, then close. A keyboard
+    /// activation continues the form; a mouse click on a row is a pick and nothing more.
+    private func activateMenuItem(_ index: Int, continues: Bool = false) {
         guard let content = menuContent, (0..<content.rowCount).contains(index) else { return }
         guard content.isSelectable(index) else { return }
+        let menu = openMenu
+        let field = argumentOptionsField
         // Before the action: one opening a window must find the palette key again, or nothing hides it.
         closeMenus()
         // A mouse click on a row takes the caret with it; menus close back into the field.
         if argumentFocused == nil { searchFocused = true }
         content.activate(index)
+        guard continues else { return }
+        continueArgumentForm(menu: menu, field: field)
+    }
+
+    /// After ↵ picks from a field's choices, the form moves the way ↵ on the field would have:
+    /// the next argument takes the caret, and the last one submits the row.
+    private func continueArgumentForm(menu: OpenMenu?, field: String?) {
+        guard case .argumentOptions = menu, let field, argumentFocused != nil else { return }
+        if let next = headerAccessory?.field(after: field, backwards: false) {
+            argumentFocused = next
+            searchFocused = false
+            return
+        }
+        activateSelection()
     }
 
     /// For the chords the panel hands over as tokens, which work while a menu is open.
@@ -1315,10 +1340,11 @@ struct RootPaletteView: View {
     /// An `options=` field is chosen from the palette's own menu, never typed into.
     private func openArgumentOptions(_ field: String) {
         guard let accessory = headerAccessory, accessory.optionsMenu(field) != nil else { return }
+        let leading = accessory.optionsAnchor(field).flatMap { $0.isEmpty ? nil : $0.minX }
         argumentFocused = field
         searchFocused = false
         argumentOptionsField = field
-        open(.argumentOptions, highlighting: 0)
+        open(.argumentOptions(leading: leading), highlighting: 0)
     }
 
     /// An extension keeps its own stack, so it can have a step back the palette cannot see.
@@ -1356,11 +1382,12 @@ struct RootPaletteView: View {
 }
 
 /// The palette's in-window menus. One optional of these is the whole "only one is open" invariant.
-private enum OpenMenu {
+private enum OpenMenu: Equatable {
     case actions
     case extensionAccessory
-    /// An `options=` argument field's choices, hung under the header where the chip sits.
-    case argumentOptions
+    /// An `options=` argument field's choices, hung under the chip that opened them. `leading` is
+    /// the chip's window-local x; nil keeps the header-trailing fallback when no frame was read.
+    case argumentOptions(leading: CGFloat?)
     case app
     case clipboardFilter
     case fileSearchFilter

@@ -85,7 +85,20 @@ enum RaycastScriptImport {
                 let placeholder = object["placeholder"] as? String, !placeholder.isEmpty
             else { return nil }
             return CustomCommandArgument(
-                name: placeholder, isOptional: object["optional"] as? Bool ?? false)
+                name: placeholder, isOptional: object["optional"] as? Bool ?? false,
+                options: dropdownOptions(in: object))
+        }
+    }
+
+    /// A `dropdown` argument carries its choices in `data`; data that reads as nothing stays text.
+    private static func dropdownOptions(in object: [String: Any]) -> [CustomCommandDropdownOption] {
+        guard object["type"] as? String == "dropdown",
+            let data = object["data"] as? [[String: Any]]
+        else { return [] }
+        return data.compactMap { entry in
+            guard let title = entry["title"] as? String, !title.isEmpty else { return nil }
+            return CustomCommandDropdownOption(
+                title: title, value: entry["value"] as? String ?? title)
         }
     }
 

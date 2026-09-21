@@ -23,6 +23,8 @@ struct InlineArgumentFields: View {
     let openOptions: (String) -> Void
     /// ↵ from inside a field acts like ↵ on the row itself.
     let onSubmit: () -> Void
+    /// Reports each choice field's frame, so the palette can hang its menu under the chip.
+    let onFrame: (String, CGRect) -> Void
     /// Fields the caret has left behind. Nothing is owed until one was visited and not answered.
     @State private var visited: Set<String> = []
 
@@ -45,9 +47,12 @@ struct InlineArgumentFields: View {
                     ArgumentChoiceField(
                         argument: argument, text: value(argument.id),
                         isFocused: focused == argument.id, isOwed: isOwed,
-                        onOpen: { openOptions(argument.id) }
+                        onOpen: { openOptions(argument.id) }, onSubmit: onSubmit
                     )
                     .focused($focused, equals: argument.id)
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                        onFrame(argument.id, $0)
+                    }
                 }
             }
         }
@@ -59,7 +64,7 @@ struct InlineArgumentFields: View {
         }
     }
 
-    static func height(_ metrics: InterfaceMetrics) -> CGFloat { metrics.scaled(26) }
+    static func height(_ metrics: InterfaceMetrics) -> CGFloat { metrics.scaled(32) }
 
     /// The header shrinks the search field to exactly the room left over.
     static func totalWidth(
@@ -139,7 +144,7 @@ private struct ArgumentField: View {
         .font(metrics.typography.rowTrailing)
         .tint(Theme.Colors.textPrimary)
         .onSubmit(onSubmit)
-        .multilineTextAlignment(.center)
+        .multilineTextAlignment(.leading)
         .modifier(
             ArgumentFieldChrome(
                 argument: argument, isFocused: isFocused, isOwed: isOwed && text.isEmpty,
@@ -155,6 +160,7 @@ private struct ArgumentChoiceField: View {
     let isFocused: Bool
     let isOwed: Bool
     let onOpen: () -> Void
+    let onSubmit: () -> Void
     @State private var hovered = false
 
     var body: some View {
@@ -181,7 +187,8 @@ private struct ArgumentChoiceField: View {
         .focusEffectDisabled()
         .onTapGesture(perform: onOpen)
         .onKeyPress(keys: [.return, KeyEquivalent("\u{3}")]) { _ in
-            onOpen()
+            // ↵ on an empty field opens the choices; on a chosen one it acts like the row's ↵.
+            if text.isEmpty { onOpen() } else { onSubmit() }
             return .handled
         }
         .accessibilityElement(children: .ignore)

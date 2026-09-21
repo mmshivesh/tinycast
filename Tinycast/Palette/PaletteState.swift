@@ -52,6 +52,9 @@ final class PaletteState {
     var pasteTarget: PasteTarget?
     /// Values typed into a row's inline argument fields, keyed by `argumentKey`.
     var commandArguments: [String: String] = [:]
+    /// A choice field's chip frame, keyed like `commandArguments`; a menu reads it to hang under
+    /// the chip. Untracked like `searchFieldFrame`, so a geometry pass never re-renders anything.
+    @ObservationIgnored var argumentFrames: [String: CGRect] = [:]
     /// Set when the palette opens to fill one row's fields; the header focuses the first empty one.
     var pendingArgumentEntryID: String?
     /// The row a shortcut opened root search onto, listed alone while the query is its name.
@@ -145,6 +148,7 @@ final class PaletteState {
         isEditingField = false
         isControlListOpen = false
         commandArguments = [:]
+        argumentFrames = [:]
         pendingArgumentEntryID = nil
         argumentEntryID = nil
         clipboardFilter = .all

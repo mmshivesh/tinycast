@@ -38,12 +38,18 @@ enum QuicklinkArgumentsAccessory {
                 else { return nil }
                 return menu(for: argument, value: value(id))
             },
+            optionsAnchor: { id in
+                vm.argumentFrames[PaletteState.argumentKey(quicklink.entryID, id)]
+            },
             placement: placement,
             // Identity per row, so "which fields were left unanswered" starts clean on the next one.
             view: AnyView(
                 InlineArgumentFields(
                     arguments: arguments, symbol: symbol, value: value, focused: focus,
-                    openOptions: onOpenOptions, onSubmit: onSubmit
+                    openOptions: onOpenOptions, onSubmit: onSubmit,
+                    onFrame: { id, frame in
+                        vm.argumentFrames[PaletteState.argumentKey(quicklink.entryID, id)] = frame
+                    }
                 )
                 .id(quicklink.entryID))
         )
