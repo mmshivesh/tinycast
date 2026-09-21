@@ -63,7 +63,7 @@ final class PaletteDropGuideController {
 
     /// AppKit's y grows up from the screen's origin, SwiftUI's grows down from the window's top.
     private var guides: PaletteDropGuideView {
-        PaletteDropGuideView(
+        return PaletteDropGuideView(
             topLeft: CGPoint(x: home.x - screenFrame.minX, y: screenFrame.maxY - home.y),
             width: width,
             armed: armed)

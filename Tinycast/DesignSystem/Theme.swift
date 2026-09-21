@@ -60,8 +60,8 @@ enum Theme {
     }
 
     enum Size {
-        static let panelWidth: CGFloat = 750
-        static let panelHeight: CGFloat = 475
+        static let panelWidth: CGFloat = 640
+        static let panelHeight: CGFloat = 450
         /// Opening size on a first run and the floor: below it the title bar's own parts collide.
         static let noteWindow = CGSize(width: 440, height: 180)
         static let noteEditorInset: CGFloat = 16
@@ -83,7 +83,7 @@ enum Theme {
         /// Nine points crowds the palette's 26-point corner, so Notes seats its lights further in.
         static let noteTrafficLightInset: CGFloat = 20
         /// Fraction of visible height above the palette's top edge; it grows downward.
-        static let paletteTopMarginFraction: CGFloat = 0.18
+        static let paletteTopMarginFraction: CGFloat = 0.30
         static let headerHeight: CGFloat = 44
         /// Fixed slot for the header glyph, so the field starts at one x in every mode.
         static let headerIconSlot: CGFloat = 22
@@ -433,7 +433,7 @@ enum Theme {
         static let brand = Color(red: 0.525, green: 0.231, blue: 1.0)
         /// The palette's drop guides while dragging, and once a release would snap it home.
         static let dropGuide = ramp(dark: 0.35, light: 0.35)
-        static let dropGuideArmed = Color.blue
+        static let dropGuideArmed = Color.accentColor
         /// A dialog's standard default action; destructive defaults keep their semantic red.
         static let primaryAction = Color.blue
         /// Destructive tint: a destructive label, and a `.danger` dialog's glyph.
@@ -441,7 +441,7 @@ enum Theme {
         /// Success tint: the leading glyph of a `.success` dialog.
         static let success = Color.green
         /// Progress tint: the message pill's spinner while the work behind it is still running.
-        static let progress = Color.blue
+        static let progress = Color.accentColor
         /// The command output window's page: a flat surface the log sits directly on.
         static let terminalSurface = adaptive(
             dark: .srgbInk(0.07, alpha: 1), light: .srgbInk(0.99, alpha: 1))

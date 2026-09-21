@@ -137,7 +137,7 @@ struct CustomCommandEditorPanel: View {
             }
             .popover(isPresented: $showingIconPicker, arrowEdge: .bottom) {
                 SymbolPicker(
-                    selection: $iconSymbol, fallback: CustomCommand.sfSymbol,
+                    selection: $iconSymbol, fallback: CustomCommand.sfSymbol, editingCustom: iconSymbol ?? CustomCommand.sfSymbol,
                     symbols: Self.iconSymbols
                 ) {
                     showingIconPicker = false
